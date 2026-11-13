@@ -46,6 +46,13 @@ jobs:
             "appId": "com.hieutt1982.g040h",
             "appName": "G040H Android",
             "webDir": "dist",
+            "server": {
+              "cleartext": true,
+              "allowNavigation": [
+                "http://127.0.0.1:3000",
+                "http://localhost:3000"
+              ]
+            },
             "plugins": {
               "Nodejs": {
                 "nodeDir": "nodejs",
@@ -66,7 +73,7 @@ jobs:
             <title>G040H Android</title>
           </head>
           <body>
-            <div id="status" style="padding:20px;font:18px Arial">
+            <div id="status" style="padding:20px;font:18px Arial;color:#333">
               Đang khởi động G040H...
             </div>
             <script type="module" src="/src/main.js"></script>
@@ -82,9 +89,12 @@ jobs:
           async function startApp() {
             try {
               await Nodejs.addListener('ready', () => {
-                status.textContent = 'Node.js đã sẵn sàng. Đang mở G040H...';
+                status.textContent = 'Máy chủ G040H đã sẵn sàng...';
+
                 window.location.replace('http://127.0.0.1:3000/');
               });
+
+              status.textContent = 'Đang khởi động Node.js...';
 
               await Nodejs.start({
                 script: 'launcher.js',
@@ -95,7 +105,7 @@ jobs:
               });
 
             } catch (error) {
-              status.textContent = 'LỖI KHỞI ĐỘNG: ' + error.message;
+              status.textContent = 'LỖI: ' + error.message;
             }
           }
 
@@ -105,6 +115,7 @@ jobs:
           npm run build
 
           mkdir -p dist/nodejs
+
           cp main.js dist/nodejs/main.js
 
           cat > dist/nodejs/package.json <<'EOF'
@@ -116,18 +127,27 @@ jobs:
           EOF
 
           cat > dist/nodejs/launcher.js <<'EOF'
-          const app = require('./main.js');
+          const { server } = require('./main.js');
 
-          if (!app.server) {
+          if (!server) {
             throw new Error('Không tìm thấy máy chủ G040H');
           }
 
-          app.server.once('listening', () => {
-            require('bridge');
-          });
+          let readySent = false;
 
-          if (app.server.listening) {
+          function signalReady() {
+            if (readySent) return;
+            readySent = true;
             require('bridge');
+          }
+
+          if (server.listening) {
+            signalReady();
+          } else {
+            server.once('listening', signalReady);
+            server.once('error', error => {
+              console.error('[G040H] Không thể khởi động:', error);
+            });
           }
           EOF
 
