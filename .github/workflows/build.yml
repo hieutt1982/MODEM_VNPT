@@ -1,4 +1,4 @@
- 
+
 name: Build G040H Android APK
 
 on:
@@ -59,7 +59,7 @@ jobs:
 
           cat > index.html <<'EOF'
           <!DOCTYPE html>
-          <html>
+          <html lang="vi">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -67,7 +67,7 @@ jobs:
           </head>
           <body>
             <div id="status" style="padding:20px;font:18px Arial">
-              Đang khởi động Node.js...
+              Đang khởi động G040H...
             </div>
             <script type="module" src="/src/main.js"></script>
           </body>
@@ -79,20 +79,27 @@ jobs:
 
           const status = document.getElementById('status');
 
-          Nodejs.addListener('ready', () => {
-            status.textContent = 'Đang mở G040H...';
-            window.location.replace('http://127.0.0.1:3000/');
-          });
+          async function startApp() {
+            try {
+              await Nodejs.addListener('ready', () => {
+                status.textContent = 'Node.js đã sẵn sàng. Đang mở G040H...';
+                window.location.replace('http://127.0.0.1:3000/');
+              });
 
-          Nodejs.start({
-            script: 'launcher.js',
-            env: {
-              HOST: '127.0.0.1',
-              PORT: '3000'
+              await Nodejs.start({
+                script: 'launcher.js',
+                env: {
+                  HOST: '127.0.0.1',
+                  PORT: '3000'
+                }
+              });
+
+            } catch (error) {
+              status.textContent = 'LỖI KHỞI ĐỘNG: ' + error.message;
             }
-          }).catch(error => {
-            status.textContent = 'Lỗi khởi động: ' + error.message;
-          });
+          }
+
+          startApp();
           EOF
 
           npm run build
@@ -109,8 +116,19 @@ jobs:
           EOF
 
           cat > dist/nodejs/launcher.js <<'EOF'
-          require('bridge');
-          require('./main.js');
+          const app = require('./main.js');
+
+          if (!app.server) {
+            throw new Error('Không tìm thấy máy chủ G040H');
+          }
+
+          app.server.once('listening', () => {
+            require('bridge');
+          });
+
+          if (app.server.listening) {
+            require('bridge');
+          }
           EOF
 
       - name: Create Android project
