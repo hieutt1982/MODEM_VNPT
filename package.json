@@ -1,0 +1,11 @@
+
+{
+  "name": "g040h-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "G040H Android Node.js Application",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  }
+}
