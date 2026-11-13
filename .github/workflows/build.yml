@@ -49,8 +49,10 @@ jobs:
             "server": {
               "cleartext": true,
               "allowNavigation": [
-                "http://127.0.0.1:3000",
-                "http://localhost:3000"
+                "127.0.0.1",
+                "127.0.0.1:3000",
+                "localhost",
+                "localhost:3000"
               ]
             },
             "plugins": {
@@ -70,10 +72,11 @@ jobs:
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="theme-color" content="#101214">
             <title>G040H Android</title>
           </head>
-          <body>
-            <div id="status" style="padding:20px;font:18px Arial;color:#333">
+          <body style="margin:0;background:#101214;color:white;font-family:Arial">
+            <div id="status" style="padding:20px;font-size:18px">
               Đang khởi động G040H...
             </div>
             <script type="module" src="/src/main.js"></script>
@@ -87,8 +90,21 @@ jobs:
           const status = document.getElementById('status');
 
           async function startApp() {
+            let opened = false;
+
+            const timer = setTimeout(() => {
+              if (!opened) {
+                status.textContent =
+                  'Node.js khởi động quá lâu. Vui lòng kiểm tra lỗi khởi động.';
+              }
+            }, 20000);
+
             try {
               await Nodejs.addListener('ready', () => {
+                if (opened) return;
+                opened = true;
+                clearTimeout(timer);
+
                 status.textContent = 'Máy chủ G040H đã sẵn sàng...';
 
                 window.location.replace('http://127.0.0.1:3000/');
@@ -104,8 +120,19 @@ jobs:
                 }
               });
 
+              const result = await Nodejs.isReady();
+
+              if (result.ready && !opened) {
+                opened = true;
+                clearTimeout(timer);
+                window.location.replace('http://127.0.0.1:3000/');
+              }
+
             } catch (error) {
-              status.textContent = 'LỖI: ' + error.message;
+              clearTimeout(timer);
+              status.textContent =
+                'LỖI KHỞI ĐỘNG NODE.JS: ' +
+                (error.message || String(error));
             }
           }
 
@@ -122,6 +149,7 @@ jobs:
           {
             "name": "g040h-server",
             "version": "1.0.0",
+            "private": true,
             "main": "launcher.js"
           }
           EOF
@@ -138,16 +166,19 @@ jobs:
           function signalReady() {
             if (readySent) return;
             readySent = true;
+
+            console.log('[G040H] Máy chủ đã sẵn sàng');
             require('bridge');
           }
+
+          server.once('error', error => {
+            console.error('[G040H] Lỗi máy chủ:', error);
+          });
 
           if (server.listening) {
             signalReady();
           } else {
             server.once('listening', signalReady);
-            server.once('error', error => {
-              console.error('[G040H] Không thể khởi động:', error);
-            });
           }
           EOF
 
