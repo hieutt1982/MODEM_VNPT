@@ -1,0 +1,136 @@
+ 
+name: Build G040H Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Create Capacitor project
+        run: |
+          cat > package.json <<'EOF'
+          {
+            "name": "g040h-android",
+            "version": "1.0.0",
+            "private": true,
+            "scripts": {
+              "build": "vite build"
+            }
+          }
+          EOF
+
+          npm install @capacitor/core@^8 @capacitor/cli@^8 @capacitor/android@^8 @capawesome/capacitor-nodejs@^0.2.0 vite@^7
+
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.hieutt1982.g040h",
+            "appName": "G040H Android",
+            "webDir": "dist",
+            "plugins": {
+              "Nodejs": {
+                "nodeDir": "nodejs",
+                "startMode": "manual"
+              }
+            }
+          }
+          EOF
+
+          mkdir -p src
+
+          cat > index.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>G040H Android</title>
+          </head>
+          <body>
+            <div id="status" style="padding:20px;font:18px Arial">
+              Đang khởi động Node.js...
+            </div>
+            <script type="module" src="/src/main.js"></script>
+          </body>
+          </html>
+          EOF
+
+          cat > src/main.js <<'EOF'
+          import { Nodejs } from '@capawesome/capacitor-nodejs';
+
+          const status = document.getElementById('status');
+
+          Nodejs.addListener('ready', () => {
+            status.textContent = 'Đang mở G040H...';
+            window.location.replace('http://127.0.0.1:3000/');
+          });
+
+          Nodejs.start({
+            script: 'launcher.js',
+            env: {
+              HOST: '127.0.0.1',
+              PORT: '3000'
+            }
+          }).catch(error => {
+            status.textContent = 'Lỗi khởi động: ' + error.message;
+          });
+          EOF
+
+          npm run build
+
+          mkdir -p dist/nodejs
+          cp main.js dist/nodejs/main.js
+
+          cat > dist/nodejs/package.json <<'EOF'
+          {
+            "name": "g040h-server",
+            "version": "1.0.0",
+            "main": "launcher.js"
+          }
+          EOF
+
+          cat > dist/nodejs/launcher.js <<'EOF'
+          require('bridge');
+          require('./main.js');
+          EOF
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Sync Android
+        run: npx cap sync android
+
+      - name: Configure Android network
+        run: |
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: G040H-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
