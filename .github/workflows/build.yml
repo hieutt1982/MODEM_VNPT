@@ -1,5 +1,5 @@
 
-name: Build G040H Android APK
+name: Build MODEM_VNPT_APK
 
 on:
   workflow_dispatch:
