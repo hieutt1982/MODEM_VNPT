@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const target = path.join(root, 'www', 'nodejs');
 
+// Xóa dữ liệu Node.js cũ
 fs.rmSync(target, { recursive: true, force: true });
 fs.mkdirSync(target, { recursive: true });
 
@@ -14,7 +15,7 @@ fs.copyFileSync(
   path.join(target, 'modem.js')
 );
 
-// Tạo package.json cho Node.js
+// Tạo package.json
 fs.writeFileSync(
   path.join(target, 'package.json'),
   JSON.stringify({
@@ -25,7 +26,7 @@ fs.writeFileSync(
   }, null, 2) + '\n'
 );
 
-// Sao chép các module
+// Sao chép các module modem
 for (const dir of ['g040h', 'ns_v1', 'ns_v2']) {
   const source = path.join(root, dir);
   const destination = path.join(target, dir);
@@ -38,15 +39,16 @@ for (const dir of ['g040h', 'ns_v1', 'ns_v2']) {
   );
 }
 
-// Sao chép OneLink: chỉ sử dụng main.js
-const oneLinkSource = path.join(root, 'onelink');
+// Sao chép OneLink
+// HTML đã được nhúng trong main.js
+const oneLinkSource = path.join(root, 'onelink', 'main.js');
 const oneLinkTarget = path.join(target, 'onelink');
 
 fs.mkdirSync(oneLinkTarget, { recursive: true });
 
 fs.copyFileSync(
-  path.join(oneLinkSource, 'main.js'),
+  oneLinkSource,
   path.join(oneLinkTarget, 'main.js')
 );
 
-console.log('Staged modem.js, modules, and OneLink main.js successfully.');
+console.log('Staged all VNPT modem modules successfully.');
