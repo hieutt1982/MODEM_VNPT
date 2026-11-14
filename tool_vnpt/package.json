@@ -1,0 +1,20 @@
+{
+  "name": "vnpt-modem-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VNPT modem configuration app for Android",
+  "scripts": {
+    "start": "node modem.js",
+    "stage:node": "node scripts/stage-node.cjs",
+    "android:sync": "npm run stage:node && cap sync android",
+    "android:apk": "npm run android:sync && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capawesome/capacitor-nodejs": "0.3.0",
+    "@capacitor/android": "8.6.2",
+    "@capacitor/core": "8.6.2"
+  },
+  "devDependencies": { "@capacitor/cli": "8.6.2" }
+}
+
+

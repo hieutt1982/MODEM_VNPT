@@ -1,0 +1,6 @@
+{
+  "name": "vnpt-modem-node",
+  "version": "1.0.0",
+  "private": true,
+  "main": "modem.js"
+}
